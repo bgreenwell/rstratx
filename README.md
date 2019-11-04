@@ -8,10 +8,10 @@
 <!-- badges: end -->
 
 The **rstratx** provides an interface to
-[stratx](https://github.com/parrt/stratx), a Python library for A
-Stratification Approach to Partial Dependence for Codependent Variables.
-Currently, only the StratPD algorithm is supported (which only applies
-to numeric features).
+[stratx](https://github.com/parrt/stratx), a Python library for [A
+Stratification Approach to Partial Dependence for Codependent
+Variables](https://arxiv.org/abs/1907.06698). Currently, only the
+StratPD algorithm is supported (which only applies to numeric features).
 
 **WARNING:** This package is under heavy development. The underlying
 Python code needs cleaned up, and imports aren’t really handled that
