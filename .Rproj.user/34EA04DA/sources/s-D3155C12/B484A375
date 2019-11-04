@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1572891902994.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "B484A375",
+    "lastKnownWriteTime" : 1572896142,
+    "last_content_update" : 1572896142126,
+    "path" : "~/Desktop/devel/rstratx/R/plot_stratpd.R",
+    "project_path" : "R/plot_stratpd.R",
+    "properties" : {
+        "cursorPosition" : "42,31",
+        "scrollLine" : "28",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

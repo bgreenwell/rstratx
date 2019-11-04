@@ -1,0 +1,8 @@
+# Global reference to stratx (will be initialized in .onLoad)
+stratx <- NULL
+
+.onLoad <- function(libname, pkgname) {
+  # use superassignment to update global reference to scipy
+  
+  stratx <<- reticulate::import("scipy", delay_load = TRUE)
+}

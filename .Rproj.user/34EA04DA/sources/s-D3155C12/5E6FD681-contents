@@ -1,0 +1,35 @@
+# Load required packages
+library(reticulate)
+
+# Setup reticulate
+use_python("/Users/b780620/anaconda3/bin/python3")
+
+library(rstratx)
+
+# Make sure stratx module is available
+py_module_available("stratx")
+
+pd <- import("pandas")
+plt <- import("matplotlib.pyplot")
+# stratx <- import("stratx")
+stratx <- import_from_path("stratx",
+                           path = "/Users/b780620/Desktop/devel/stratx")
+
+# Load Boston housing data
+boston <- pdp::boston
+X <- subset(boston, select = -cmedv)
+# y <- boston[, "cmedv", drop = TRUE]
+y <- boston[, "cmedv", drop = FALSE]
+
+spd <- stratpd(X, y, feature_name = "age")
+
+plot(spd, type = "l", lwd = 2, ylim = c(-10, 10))
+
+# y <- as.data.frame(t(y))
+# y <- pd$Series(boston$cmedv, index = seq_len(nrow(X)))
+# y <- pd$DataFrame(pd$Series(boston$cmedv, index = seq_len(nrow(X))))
+
+# WORKS ONLY WITH DATAFRAMES AT MOMENT
+p <- stratx$partdep$plot_stratpd(X, y, "age", "cmedv", yrange = c(-10, 10))
+plt$tight_layout()
+plt$show()
