@@ -2,12 +2,27 @@
 #'
 #' TBD.
 #'
-#' @param X TBD.
+#' @param X A matrix-like R object (e.g., a data frame or matrix) containing
+#' ONLY the feature columns from the training data.
 #'
-#' @param y TBD.
+#' @param y A vector or matrix-like R object (e.g., a data frame or matrix)
+#' containing ONLY the target values from the training data.
+#'
+#' @param feature_name Character string specifying the feature of interest.
+#'
+#' @param ... Additional optional arguments.
 #'
 #' @export
-stratpd <- function(X, y, feature_name = NULL) {
+stratpd <- function(X, y, feature_name = NULL, ...) {
+  if (!is.data.frame(X)) {
+    X <- as.data.frame(X)
+  }
+  if (!is.data.frame(y)) {
+    y <- as.data.frame(y)
+  }
+  if (is.null(feature_name)) {
+    feature_name <- colnames(X)[1L]
+  }
   stratx <- reticulate::import_from_path(
     module = "stratx",
     path = system.file("python", "stratx", package = "rstratx"),
@@ -17,7 +32,8 @@ stratpd <- function(X, y, feature_name = NULL) {
     X = X,
     y = y,
     colname = feature_name,
-    targetname = names(y)
+    targetname = colnames(y),
+    ...
   )
   names(spd) <- c("leaf_xranges", "leaf_slopes", "pdpx", "pdpy", "ignored")
   class(spd) <- c("stratpd", class(spd))

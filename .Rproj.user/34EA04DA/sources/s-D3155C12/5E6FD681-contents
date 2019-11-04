@@ -21,7 +21,7 @@ X <- subset(boston, select = -cmedv)
 # y <- boston[, "cmedv", drop = TRUE]
 y <- boston[, "cmedv", drop = FALSE]
 
-spd <- stratpd(X, y, feature_name = "age")
+spd <- stratpd(X, y, feature_name = "age", ntrees = 10L)
 
 plot(spd, type = "l", lwd = 2, ylim = c(-10, 10))
 

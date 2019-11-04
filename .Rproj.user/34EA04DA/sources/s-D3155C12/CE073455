@@ -5,14 +5,14 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "2002947177",
+    "hash" : "0",
     "id" : "CE073455",
-    "lastKnownWriteTime" : 1572892284,
-    "last_content_update" : 1572892284909,
+    "lastKnownWriteTime" : 1572901031,
+    "last_content_update" : 1572901032000,
     "path" : "~/Desktop/devel/rstratx/R/zzz.R",
     "project_path" : "R/zzz.R",
     "properties" : {
-        "cursorPosition" : "5,48",
+        "cursorPosition" : "7,0",
         "scrollLine" : "0",
         "tempName" : "Untitled1"
     },
