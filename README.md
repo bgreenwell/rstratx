@@ -36,26 +36,42 @@ Here’s a basic example using the well-known Boston housing data set:
 library(pdp)      # for ordinary partial dependence
 library(ranger)   # for random forest algorithm
 #> Warning: package 'ranger' was built under R version 3.5.2
+library(reticulate)  # for interfacing with Python
+#> Warning: package 'reticulate' was built under R version 3.5.2
+use_python("/Users/b780620/anaconda3/bin/python3", required = TRUE)  # FIXME
 library(rstratx)  # for stratified partial dependence
 
 # Load the Boston housing data
 data(boston, package = "pdp")
 
-# Fit a (default) random forest model
+#
+# Ordinary partial dependence
+#
+
+# Fit a (default) random forest model and construct PDP for age
 set.seed(1818)  # for reproducibility
 rfo <- ranger(cmedv ~ ., data = boston)
+partial(rfo, pred.var = "age", plot = TRUE)
+```
 
-# Compute stratified partial dependence for age
+<img src="man/figures/README-example-1.png" width="70%" />
+
+``` r
+
+#
+# Stratified partial dependence
+#
+
+# Compute stratified partial dependence for age (auto fits an RF)
 spd <- stratpd(
   X = subset(boston, select = -cmedv), 
   y = boston[, "cmedv", drop = FALSE],  # needs a one-column data frame (for now)
   feature_name = "age"
 )
 
-# Compare results
-par(mfrow = c(1, 2), mar = c(4, 4, 1, 1) + 0.1)
-plot(partial(rfo, pred.var = "age"), type = "l", las = 1)
+# Plot results
+par(mar = c(4, 4, 1, 1) + 0.1)
 plot(spd, type = "l", lwd = 2, las = 1, ylim = c(-10, 10))
 ```
 
-<img src="man/figures/README-example-1.png" width="100%" />
+<img src="man/figures/README-example-2.png" width="70%" />

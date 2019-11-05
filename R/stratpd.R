@@ -23,12 +23,13 @@ stratpd <- function(X, y, feature_name = NULL, ...) {
   if (is.null(feature_name)) {
     feature_name <- colnames(X)[1L]
   }
-  stratx <- reticulate::import_from_path(
-    module = "stratx",
-    path = system.file("python", "stratx", package = "rstratx"),
+  partdep <- reticulate::import_from_path(  # temporary workaroumnd
+    module = "partdep",
+    path = system.file("python", "stratx_lite", "stratx_lite",
+                       package = "rstratx"),
     convert = TRUE
   )
-  spd <- stratx$partdep$plot_stratpd(
+  spd <- partdep$stratpd(
     X = X,
     y = y,
     colname = feature_name,

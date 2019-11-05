@@ -36,28 +36,38 @@ remotes::install_github("bgreenwell/rstratx")
 
 Here's a basic example using the well-known Boston housing data set:
 
-```{r example, fig.width=7, fig.asp=0.309, out.width="100%"}
+```{r example, fig.width=6, fig.asp=0.618, out.width="70%"}
 # Load required packages
 library(pdp)      # for ordinary partial dependence
 library(ranger)   # for random forest algorithm
+library(reticulate)  # for interfacing with Python
+use_python("/Users/b780620/anaconda3/bin/python3", required = TRUE)  # FIXME
 library(rstratx)  # for stratified partial dependence
 
 # Load the Boston housing data
 data(boston, package = "pdp")
 
-# Fit a (default) random forest model
+#
+# Ordinary partial dependence
+#
+
+# Fit a (default) random forest model and construct PDP for age
 set.seed(1818)  # for reproducibility
 rfo <- ranger(cmedv ~ ., data = boston)
+partial(rfo, pred.var = "age", plot = TRUE)
 
-# Compute stratified partial dependence for age
+#
+# Stratified partial dependence
+#
+
+# Compute stratified partial dependence for age (auto fits an RF)
 spd <- stratpd(
   X = subset(boston, select = -cmedv), 
   y = boston[, "cmedv", drop = FALSE],  # needs a one-column data frame (for now)
   feature_name = "age"
 )
 
-# Compare results
-par(mfrow = c(1, 2), mar = c(4, 4, 1, 1) + 0.1)
-plot(partial(rfo, pred.var = "age"), type = "l", las = 1)
+# Plot results
+par(mar = c(4, 4, 1, 1) + 0.1)
 plot(spd, type = "l", lwd = 2, las = 1, ylim = c(-10, 10))
 ```
