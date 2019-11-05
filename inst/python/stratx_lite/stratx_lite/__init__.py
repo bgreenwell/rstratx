@@ -1,5 +1,5 @@
 __all__ = [
     "partdep"
 ]
-
-from .partdep import partdep
+ 
+from . import partdep
