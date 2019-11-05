@@ -5,8 +5,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 import warnings
 
-import time
-
 
 def leaf_samples(rf, X:np.ndarray):
     """
@@ -61,7 +59,6 @@ def collect_point_betas(X, y, colname, leaves, nbins:int):
                 continue
             r = (np.min(bin_x), np.max(bin_x))
             if len(bin_x)<2 or np.isclose(r[0], r[1]):
-    #             print(f'ignoring {bin_x} -> {bin_y} for same range')
                 ignored += len(bin_x)
                 continue
             lm = LinearRegression()
@@ -77,58 +74,28 @@ def collect_point_betas(X, y, colname, leaves, nbins:int):
 
 
 def stratpd(X, y, colname, targetname,
-            ntrees=1, min_samples_leaf=10, bootstrap=False,
-            max_features=1.0,
-            supervised=True,
-            verbose=False
+            ntrees=1, min_samples_leaf=10, bootstrap=False, max_features=1.0
             ):
     
     # For compatibility with reticulate
     if y.ndim == 2:
         y = y.iloc[:, 0]
 
-    if supervised:
-        rf = RandomForestRegressor(n_estimators=ntrees,
-                                   min_samples_leaf=min_samples_leaf,
-                                   bootstrap=bootstrap,
-                                   max_features=max_features)
-        rf.fit(X.drop(colname, axis=1), y)
-        if verbose:
-            print(f"Strat Partition RF: missing {colname} training R^2 {rf.score(X.drop(colname, axis=1), y)}")
-
-    else:
-        """
-        Wow. Breiman's trick works in most cases. Falls apart on Boston housing MEDV target vs AGE
-        """
-        if verbose: print("USING UNSUPERVISED MODE")
-        X_synth, y_synth = conjure_twoclass(X)
-        rf = RandomForestRegressor(n_estimators=ntrees,
-                                   min_samples_leaf=min_samples_leaf,
-                                   bootstrap=bootstrap,
-                                   max_features=max_features,
-                                   oob_score=False)
-        rf.fit(X_synth.drop(colname, axis=1), y_synth)
+    rf = RandomForestRegressor(n_estimators=ntrees,
+                               min_samples_leaf=min_samples_leaf,
+                               bootstrap=bootstrap,
+                               max_features=max_features)
+    rf.fit(X.drop(colname, axis=1), y)
 
     leaves = leaf_samples(rf, X.drop(colname, axis=1))
     nnodes = rf.estimators_[0].tree_.node_count
-    if verbose:
-        print(f"Partitioning 'x not {colname}': {nnodes} nodes in (first) tree, "
-              f"{len(rf.estimators_)} trees, {len(leaves)} total leaves")
 
     leaf_xranges, leaf_sizes, leaf_slopes, ignored = \
         collect_discrete_slopes(rf, X, y, colname)
-    # leaf_xranges, leaf_sizes, leaf_slopes, _, ignored = \
-        #collect_leaf_slopes(rf, X, y, colname, nbins=0, isdiscrete=1, verbose=0)
-
-    # print('leaf_xranges', leaf_xranges)
-    # print('leaf_slopes', leaf_slopes)
 
     real_uniq_x = np.array(sorted(np.unique(X[colname])))
-    if verbose:
-        print(f"discrete StratPD num samples ignored {ignored}/{len(X)} for {colname}")
 
     slope_at_x = avg_values_at_x(real_uniq_x, leaf_xranges, leaf_slopes)
-    # slope_at_x = weighted_avg_values_at_x(real_uniq_x, leaf_xranges, leaf_slopes, leaf_sizes, use_weighted_avg=True)
 
     # Drop any nan slopes; implies we have no reliable data for that range
     # Make sure to drop uniq_x values too :)
@@ -138,14 +105,13 @@ def stratpd(X, y, colname, targetname,
 
     dx = np.diff(pdpx)
     y_deltas = slope_at_x[:-1] * dx  # last slope is nan since no data after last x value
-    # print(f"y_deltas: {y_deltas}")
     pdpy = np.cumsum(y_deltas)                    # we lose one value here
     pdpy = np.concatenate([np.array([0]), pdpy])  # add back the 0 we lost
 
     return leaf_xranges, leaf_slopes, pdpx, pdpy, ignored
 
 
-def discrete_xc_space(x: np.ndarray, y: np.ndarray, colname, verbose):
+def discrete_xc_space(x: np.ndarray, y: np.ndarray, colname):
     """
     Use the categories within a leaf as the bins to dynamically change the bins,
     rather then using a fixed nbins hyper parameter. Group the leaf x,y by x
@@ -162,8 +128,6 @@ def discrete_xc_space(x: np.ndarray, y: np.ndarray, colname, verbose):
     If there is exactly one category in the leaf, the leaf provides no information
     about how the categories contribute to changes in y. We have to ignore this leaf.
     """
-    start = time.time()
-
     ignored = 0
     xy = pd.concat([pd.Series(x), pd.Series(y)], axis=1)
     xy.columns = ['x', 'y']
@@ -184,12 +148,10 @@ def discrete_xc_space(x: np.ndarray, y: np.ndarray, colname, verbose):
     leaf_xranges = np.array(list(zip(uniq_x, uniq_x[1:])))
     leaf_sizes = xy['x'].value_counts().sort_index().values
 
-    stop = time.time()
-    # print(f"discrete_xc_space {stop - start:.3f}s")
     return leaf_xranges, leaf_sizes, leaf_slopes, [], ignored
 
 
-def collect_discrete_slopes(rf, X, y, colname, verbose=False):
+def collect_discrete_slopes(rf, X, y, colname):
     """
     For each leaf of each tree of the random forest rf (trained on all features
     except colname), get the samples then isolate the column of interest X values
@@ -203,7 +165,6 @@ def collect_discrete_slopes(rf, X, y, colname, verbose=False):
 
     Only does discrete now after doing pointwise continuous slopes differently.
     """
-    start = time.time()
     leaf_slopes = []  # drop or rise between discrete x values
     leaf_xranges = [] # drop is from one discrete value to next
     leaf_sizes = []
@@ -211,11 +172,6 @@ def collect_discrete_slopes(rf, X, y, colname, verbose=False):
     ignored = 0
 
     leaves = leaf_samples(rf, X.drop(colname, axis=1))
-
-    if verbose:
-        nnodes = rf.estimators_[0].tree_.node_count
-        print(f"Partitioning 'x not {colname}': {nnodes} nodes in (first) tree, "
-              f"{len(rf.estimators_)} trees, {len(leaves)} total leaves")
 
     for samples in leaves:
         one_leaf_samples = X.iloc[samples]
@@ -229,7 +185,7 @@ def collect_discrete_slopes(rf, X, y, colname, verbose=False):
             continue
 
         leaf_xranges_, leaf_sizes_, leaf_slopes_, leaf_r2_, ignored_ = \
-            discrete_xc_space(leaf_x, leaf_y, colname=colname, verbose=verbose)
+            discrete_xc_space(leaf_x, leaf_y, colname=colname)
 
         leaf_slopes.extend(leaf_slopes_)
         leaf_xranges.extend(leaf_xranges_)
@@ -240,8 +196,6 @@ def collect_discrete_slopes(rf, X, y, colname, verbose=False):
     leaf_sizes = np.array(leaf_sizes)
     leaf_slopes = np.array(leaf_slopes)
 
-    stop = time.time()
-    if verbose: print(f"collect_leaf_slopes {stop - start:.3f}s")
     return leaf_xranges, leaf_sizes, leaf_slopes, ignored
 
 
@@ -251,7 +205,6 @@ def avg_values_at_x(uniq_x, leaf_ranges, leaf_values):
 
     Value at max(x) is NaN since we have no data beyond that point.
     """
-    start = time.time()
     nx = len(uniq_x)
     nslopes = len(leaf_values)
     slopes = np.zeros(shape=(nx, nslopes))
@@ -274,50 +227,4 @@ def avg_values_at_x(uniq_x, leaf_ranges, leaf_values):
         warnings.simplefilter("ignore", category=RuntimeWarning)
         avg_value_at_x = np.nanmean(slopes, axis=1)
 
-    stop = time.time()
-    # print(f"avg_value_at_x {stop - start:.3f}s")
     return avg_value_at_x
-
-
-# -------------- S U P P O R T ---------------
-
-
-def scramble(X : np.ndarray) -> np.ndarray:
-    """
-    From Breiman: https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm
-    "...the first coordinate is sampled from the N values {x(1,n)}. The second
-    coordinate is sampled independently from the N values {x(2,n)}, and so forth."
-    """
-    X_rand = X.copy()
-    ncols = X.shape[1]
-    for col in range(ncols):
-        X_rand[:,col] = np.random.choice(np.unique(X[:,col]), len(X), replace=True)
-    return X_rand
-
-
-def df_scramble(X : pd.DataFrame) -> pd.DataFrame:
-    """
-    From Breiman: https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm
-    "...the first coordinate is sampled from the N values {x(1,n)}. The second
-    coordinate is sampled independently from the N values {x(2,n)}, and so forth."
-    """
-    X_rand = X.copy()
-    for colname in X:
-        X_rand[colname] = np.random.choice(X[colname].unique(), len(X), replace=True)
-    return X_rand
-
-
-def conjure_twoclass(X):
-    """
-    Make new data set 2x as big with X and scrambled version of it that
-    destroys structure between features. Old is class 0, scrambled is class 1.
-    """
-    if isinstance(X, pd.DataFrame):
-        X_rand = df_scramble(X)
-        X_synth = pd.concat([X, X_rand], axis=0)
-    else:
-        X_rand = scramble(X)
-        X_synth = np.concatenate([X, X_rand], axis=0)
-    y_synth = np.concatenate([np.zeros(len(X)),
-                              np.ones(len(X_rand))], axis=0)
-    return X_synth, pd.Series(y_synth)
